@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const sort = searchParams.get('sort') ?? 'created_desc'
+  const search = searchParams.get('search')?.trim() ?? ''
+
   const supabase = createServerSupabase()
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let query = supabase.from('customers').select('*')
+
+  if (search) {
+    query = query.or(
+      `mention_name.ilike.%${search}%,name.ilike.%${search}%,preferred_area.ilike.%${search}%,customer_concept.ilike.%${search}%`
+    )
+  }
+
+  switch (sort) {
+    case 'intent_desc':
+      query = query.order('purchase_intent', { ascending: false, nullsFirst: false })
+        .order('updated_at', { ascending: false })
+      break
+    case 'updated_desc':
+      query = query.order('updated_at', { ascending: false })
+      break
+    case 'created_desc':
+    default:
+      query = query.order('created_at', { ascending: false })
+      break
+  }
+
+  const { data, error } = await query
 
   if (error) {
     return NextResponse.json({ error: '고객 목록을 불러오지 못했습니다.' }, { status: 500 })

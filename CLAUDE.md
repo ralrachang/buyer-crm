@@ -63,7 +63,7 @@ Supabase Auth를 사용하지 않는다. 공유 패스워드 1개(`SITE_PASSWORD
 ## Phase 계획
 
 - **Phase 1 (완료)**: 패스워드 로그인, 고객 CRUD, 타임라인, 메인 빠른기록
-- **Phase 2**: 매수의지 레벨 시각화, 고객 목록 검색/정렬
+- **Phase 2 (완료)**: 매수의지 레벨 시각화, 고객 목록 검색/정렬
 - **Phase 3**: 매물 매칭 메모(`PropertyMemo` 테이블 추가), 연락 알림
 
 상세 계획: `PRD/03_PHASES.md`

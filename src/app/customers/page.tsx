@@ -7,17 +7,37 @@ import { Customer } from '@/types'
 import IntentBadge from '@/components/IntentBadge'
 import QuickTimelineForm from '@/components/QuickTimelineForm'
 
+type SortOption = 'created_desc' | 'intent_desc' | 'updated_desc'
+
+const SORT_LABELS: Record<SortOption, string> = {
+  created_desc: '등록순',
+  intent_desc: '매수의지순',
+  updated_desc: '최근 업데이트순',
+}
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<SortOption>('created_desc')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const router = useRouter()
 
+  // 검색어 디바운스
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const loadCustomers = useCallback(async () => {
-    const res = await fetch('/api/customers')
+    const params = new URLSearchParams()
+    params.set('sort', sort)
+    if (debouncedSearch) params.set('search', debouncedSearch)
+    const res = await fetch(`/api/customers?${params}`)
     if (res.status === 401) { router.push('/'); return }
     if (res.ok) setCustomers(await res.json())
     setLoading(false)
-  }, [router])
+  }, [router, sort, debouncedSearch])
 
   useEffect(() => { loadCustomers() }, [loadCustomers])
 
@@ -67,11 +87,39 @@ export default function CustomersPage() {
           <QuickTimelineForm customers={customers} onAdded={loadCustomers} />
         )}
 
+        {/* 검색 + 정렬 */}
+        <section className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#555] text-sm">🔍</span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="고객명, 지역, 컨셉 검색..."
+              className="w-full pl-9 pr-3 py-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-sm text-[#f5f5f5] placeholder-[#444] outline-none focus:border-blue-500/50 transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] text-xs"
+              >✕</button>
+            )}
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="px-3 py-2.5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-sm text-[#ccc] outline-none focus:border-blue-500/50 transition-colors appearance-none cursor-pointer sm:w-44"
+          >
+            {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </section>
+
         {/* 고객 목록 */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-[#555] font-medium">
-              전체 고객 <span className="text-[#888]">{customers.length}명</span>
+              {debouncedSearch ? '검색 결과' : '전체 고객'} <span className="text-[#888]">{customers.length}명</span>
             </p>
           </div>
 
