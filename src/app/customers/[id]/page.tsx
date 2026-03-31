@@ -74,39 +74,41 @@ export default function CustomerDetailPage() {
 
       <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
         {/* 매수의지 레벨 */}
-        {customer.purchase_intent && (
-          <section className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-[#555] uppercase tracking-wider">매수의지</p>
-              <IntentBadge level={customer.purchase_intent} />
-            </div>
-            <div className="flex gap-1.5">
-              {[1, 2, 3, 4, 5].map((n) => {
-                const active = (customer.purchase_intent ?? 0) >= n
-                const colors = [
-                  'bg-[#2a2a2a]',        // inactive
-                  'bg-[#555]',            // 1 - 관망
-                  'bg-yellow-500',        // 2 - 검토중
-                  'bg-blue-500',          // 3 - 관심
-                  'bg-orange-500',        // 4 - 적극검토
-                  'bg-green-500',         // 5 - 계약대기
-                ]
-                return (
-                  <div
-                    key={n}
-                    className={`h-2 flex-1 rounded-full transition-colors ${
-                      active ? colors[n] : 'bg-[#2a2a2a]'
-                    }`}
-                  />
-                )
-              })}
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-[#444]">관망</span>
-              <span className="text-[10px] text-[#444]">계약대기</span>
-            </div>
-          </section>
-        )}
+        <section className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-[#555] uppercase tracking-wider">매수의지</p>
+            {customer.purchase_intent && <IntentBadge level={customer.purchase_intent} />}
+          </div>
+          <div className="flex gap-2 mb-3">
+            {[1, 2, 3, 4, 5].map((n) => {
+              const colors = ['', 'border-[#555] text-[#555] hover:bg-[#555]/20', 'border-yellow-500 text-yellow-500 hover:bg-yellow-500/20', 'border-blue-500 text-blue-500 hover:bg-blue-500/20', 'border-orange-500 text-orange-500 hover:bg-orange-500/20', 'border-green-500 text-green-500 hover:bg-green-500/20']
+              const activeBg = ['', 'bg-[#555]', 'bg-yellow-500', 'bg-blue-500', 'bg-orange-500', 'bg-green-500']
+              const isActive = customer.purchase_intent === n
+              return (
+                <button
+                  key={n}
+                  onClick={async () => {
+                    const newVal = customer.purchase_intent === n ? null : n
+                    const res = await fetch(`/api/customers/${id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ purchase_intent: newVal }),
+                    })
+                    if (res.ok) setCustomer(await res.json())
+                  }}
+                  className={`flex-1 py-2 text-sm rounded-xl border transition-colors font-medium ${
+                    isActive
+                      ? `${activeBg[n]} border-transparent text-white`
+                      : `border-[#2a2a2a] text-[#555] ${colors[n]}`
+                  }`}
+                >
+                  {n}
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-xs text-[#444]">1 관망 · 2 검토중 · 3 관심 · 4 적극검토 · 5 계약대기</p>
+        </section>
 
         {/* 프로필 카드 */}
         <section className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5">
