@@ -7,19 +7,35 @@ import { Customer } from '@/types'
 import IntentBadge from '@/components/IntentBadge'
 import QuickTimelineForm from '@/components/QuickTimelineForm'
 
-type SortOption = 'created_desc' | 'intent_desc' | 'updated_desc'
+type SortOption = 'created_desc' | 'intent_desc' | 'updated_desc' | 'timeline_desc' | 'cash_desc'
 
 const SORT_LABELS: Record<SortOption, string> = {
-  created_desc: '등록순',
+  timeline_desc: '마지막 타임라인순',
   intent_desc: '매수의지순',
+  cash_desc: '보유 현금순',
+  created_desc: '등록순',
   updated_desc: '최근 업데이트순',
+}
+
+function formatRelativeDate(dateStr: string | null): string {
+  if (!dateStr) return '기록 없음'
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return '방금 전'
+  if (minutes < 60) return `${minutes}분 전`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}일 전`
+  const months = Math.floor(days / 30)
+  return `${months}개월 전`
 }
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<SortOption>('created_desc')
+  const [sort, setSort] = useState<SortOption>('timeline_desc')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const router = useRouter()
 
@@ -59,7 +75,7 @@ export default function CustomersPage() {
     <div className="min-h-screen bg-[#0f0f0f] text-[#f5f5f5]">
       {/* 헤더 */}
       <header className="bg-[#0f0f0f] border-b border-[#1e1e1e] sticky top-0 z-10 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
             <h1 className="text-sm font-semibold text-[#f5f5f5] tracking-wide">매수고객 관리</h1>
@@ -81,7 +97,7 @@ export default function CustomersPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <main className="max-w-5xl mx-auto px-4 py-5 space-y-5">
         {/* 빠른 기록 폼 */}
         {customers.length > 0 && (
           <QuickTimelineForm customers={customers} onAdded={loadCustomers} />
@@ -138,44 +154,39 @@ export default function CustomersPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {customers.map((c) => (
                 <Link
                   key={c.id}
                   href={`/customers/${c.id}`}
-                  className="group flex items-center gap-4 bg-[#1a1a1a] hover:bg-[#1e1e1e] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-xl px-4 py-3.5 transition-all"
+                  className="group bg-[#1a1a1a] hover:bg-[#1e1e1e] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg px-3 py-2.5 transition-all"
                 >
-                  {/* 의지 레벨 인디케이터 */}
-                  <div className="flex flex-col gap-0.5">
-                    {[5,4,3,2,1].map((n) => (
-                      <div
-                        key={n}
-                        className={`w-1 h-1 rounded-full transition-colors ${
-                          (c.purchase_intent ?? 0) >= n ? 'bg-blue-500' : 'bg-[#2a2a2a]'
-                        }`}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-blue-400 text-sm font-semibold">@{c.mention_name}</span>
-                      <IntentBadge level={c.purchase_intent} />
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {/* 의지 레벨 인디케이터 */}
+                    <div className="flex flex-col gap-px">
+                      {[5,4,3,2,1].map((n) => (
+                        <div
+                          key={n}
+                          className={`w-1 h-1 rounded-full ${
+                            (c.purchase_intent ?? 0) >= n ? 'bg-blue-500' : 'bg-[#2a2a2a]'
+                          }`}
+                        />
+                      ))}
                     </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                      {c.preferred_area && (
-                        <span className="text-xs text-[#666]">📍 {c.preferred_area}</span>
-                      )}
-                      {c.purchase_purpose && (
-                        <span className="text-xs text-[#666]">{c.purchase_purpose}</span>
-                      )}
-                      {c.available_cash && (
-                        <span className="text-xs text-[#666]">{c.available_cash}억</span>
-                      )}
-                    </div>
+                    <span className="text-blue-400 text-base font-semibold truncate">@{c.mention_name}</span>
+                    <IntentBadge level={c.purchase_intent} />
                   </div>
-
-                  <span className="text-[#333] group-hover:text-[#555] transition-colors text-sm">›</span>
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-sm text-[#666] mb-1.5">
+                    {c.preferred_area && <span>📍{c.preferred_area}</span>}
+                    {c.purchase_purpose && <span>{c.purchase_purpose}</span>}
+                    {c.available_cash && <span>{c.available_cash}억</span>}
+                  </div>
+                  <div className="text-sm text-[#555]">
+                    {c.last_timeline_at
+                      ? <span>최근 기록: {formatRelativeDate(c.last_timeline_at)}</span>
+                      : <span className="text-[#333]">기록 없음</span>
+                    }
+                  </div>
                 </Link>
               ))}
             </div>

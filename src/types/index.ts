@@ -12,6 +12,7 @@ export interface Customer {
   has_corporation: boolean | null
   created_at: string
   updated_at: string
+  last_timeline_at: string | null
 }
 
 export interface TimelineEntry {
