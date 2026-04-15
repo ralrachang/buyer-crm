@@ -9,7 +9,7 @@ interface Props {
   customerId?: string
 }
 
-const PURCHASE_PURPOSES = ['임대수익', '개발', '거주', '투자']
+const PURCHASE_PURPOSES = ['임대수익', '개발', '거주', '투자', '직영']
 
 export default function CustomerForm({ initial = {}, customerId }: Props) {
   const router = useRouter()
