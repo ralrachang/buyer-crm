@@ -31,8 +31,18 @@ function formatRelativeDate(dateStr: string | null): string {
   return `${months}개월 전`
 }
 
+type RecentTimelineEntry = {
+  id: string
+  customer_id: string
+  mention: string | null
+  content: string
+  created_at: string
+  customers: { mention_name: string; name: string } | null
+}
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [recentEntries, setRecentEntries] = useState<RecentTimelineEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortOption>('timeline_desc')
@@ -55,7 +65,18 @@ export default function CustomersPage() {
     setLoading(false)
   }, [router, sort, debouncedSearch])
 
+  const loadRecentEntries = useCallback(async () => {
+    const res = await fetch('/api/timeline/recent?limit=10')
+    if (res.ok) setRecentEntries(await res.json())
+  }, [])
+
   useEffect(() => { loadCustomers() }, [loadCustomers])
+  useEffect(() => { loadRecentEntries() }, [loadRecentEntries])
+
+  const handleAdded = useCallback(() => {
+    loadCustomers()
+    loadRecentEntries()
+  }, [loadCustomers, loadRecentEntries])
 
   async function handleLogout() {
     await fetch('/api/auth', { method: 'DELETE' })
@@ -100,7 +121,39 @@ export default function CustomersPage() {
       <main className="max-w-5xl mx-auto px-4 py-5 space-y-5">
         {/* 빠른 기록 폼 */}
         {customers.length > 0 && (
-          <QuickTimelineForm customers={customers} onAdded={loadCustomers} />
+          <QuickTimelineForm customers={customers} onAdded={handleAdded} />
+        )}
+
+        {/* 최근 기록 */}
+        {recentEntries.length > 0 && (
+          <section className="bg-[#141414] border border-[#1e1e1e] rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-[#ccc]">📝 최근 기록</h2>
+              <span className="text-xs text-[#555]">최근 10개</span>
+            </div>
+            <ul className="space-y-2">
+              {recentEntries.map((entry) => (
+                <li key={entry.id}>
+                  <Link
+                    href={`/customers/${entry.customer_id}`}
+                    className="block group bg-[#1a1a1a] hover:bg-[#1e1e1e] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg px-3 py-2 transition-all"
+                  >
+                    <div className="flex items-baseline gap-2 mb-0.5">
+                      <span className="text-blue-400 text-sm font-semibold shrink-0">
+                        @{entry.customers?.mention_name ?? '삭제됨'}
+                      </span>
+                      <span className="text-xs text-[#555] shrink-0">
+                        {formatRelativeDate(entry.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#ccc] line-clamp-2 whitespace-pre-wrap">
+                      {entry.content}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {/* 검색 + 정렬 */}
